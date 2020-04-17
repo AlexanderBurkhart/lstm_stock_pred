@@ -7,6 +7,8 @@ from matplotlib import pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 
+from keras.models import load_model
+
 from optparse import OptionParser
 
 from util import get_data
@@ -22,7 +24,7 @@ BATCH_SIZE = 20
 parser = OptionParser()
 
 parser.add_option('--sd', '--startdate', dest='sd', default='2007-01-01', help='Start date for training.')
-parser.add_option('--ed', '--enddate', dest='ed', default='2008-01-01', help='End date for training.')
+parser.add_option('--ed', '--enddate', dest='ed', default='2012-01-01', help='End date for training.')
 parser.add_option('--tc', '--traincols', dest='train_cols', 
                     default=['Open','High','Low','Close','Volume'], help='data cols to train on')
 
@@ -63,6 +65,7 @@ def plot_pred(y_pred, y_org):
 def build_timeseries(mat, y_col_index):
     dim_0 = mat.shape[0] - TIME_STEPS
     dim_1 = mat.shape[1]
+    print(mat.shape[0])
     x = np.zeros((dim_0, TIME_STEPS, dim_1))
     y = np.zeros((dim_0,))
     for i in range(dim_0):
@@ -117,6 +120,8 @@ logging.info('Training model...')
 history = model.fit(x_t, y_t, epochs=10, verbose=2, batch_size=BATCH_SIZE,
                      shuffle=False, validation_data=(trim_dataset(x_val, BATCH_SIZE),
                      trim_dataset(y_val, BATCH_SIZE)))
+
+#model = load_model('model.h5')
 
 log.info('Done training.')
 print()

@@ -6,15 +6,15 @@ def symbol_to_path(symbol, base_dir='data'):
     return os.path.join(base_dir, '{}.csv'.format(str(symbol)))
 
 def get_data(symbols, dates, index_col='Date', data_cols=['Adj Close'], sing=False):
-    #Geting data from only one stock
+    #Get data from only one stock
     if sing:
         file_path = symbol_to_path(symbols)
         df = pd.read_csv(file_path, parse_dates=True, index_col=index_col,
                             usecols=[index_col]+data_cols, na_values=['nan'])
         df = fill_missing_values(df)
-        return df
+        return df.loc[dates[0]:dates[-1]]
 
-    #Getting data from multiple stocks
+    #Get data from multiple stocks
     df_data_cols = []
     for data_col in data_cols:
         df_data_col = pd.DataFrame(index=dates)
@@ -27,7 +27,7 @@ def get_data(symbols, dates, index_col='Date', data_cols=['Adj Close'], sing=Fal
         df_data_col = fill_missing_values(df_data_col)
         df_data_cols.append(df_data_col)
     df_final = pd.concat(df_data_cols, keys=data_cols)
-    return df_final
+    return df_final.loc[dates[0]:dates[-1]]
 
 def plot_data(df_data):
     ax = df_data.plot(title='Stock Data', fontsize=2)
