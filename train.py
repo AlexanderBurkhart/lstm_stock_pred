@@ -33,7 +33,7 @@ ed = dt.datetime.strptime(options.ed, '%Y-%m-%d')
 dates = pd.date_range(sd, ed)
 
 train_cols = options.train_cols
-data_sym = 'AAPL'
+data_sym = 'BAC'
 train_size = 0.8
 test_size = 0.2
 
@@ -78,6 +78,10 @@ def trim_dataset(mat, batch_size):
     else:
         return mat
 
+def preprocess(x, y_col_index):
+    x,y = build_timeseries(x, y_col_index)
+    return trim_dataset(x, BATCH_SIZE), trim_dataset(y, BATCH_SIZE)
+
 log.info('Creating model...')
 
 model = lstm_model((BATCH_SIZE, TIME_STEPS, len(train_cols)))
@@ -95,30 +99,33 @@ log.info('Data loaded.')
 print()
 log.info('Preprocessing data...')
 
+x = df_train.loc[:,train_cols].values
 min_max_scaler = MinMaxScaler()
-x_train = min_max_scaler.fit_transform(df_train.loc[:,train_cols])
+x_train = min_max_scaler.fit_transform(x)
 x_test = min_max_scaler.transform(df_test.loc[:,train_cols])
- 
-x_t, y_t = build_timeseries(x_train, 3)
-x_t = trim_dataset(x_t, BATCH_SIZE)
-y_t = trim_dataset(y_t, BATCH_SIZE)
-x_temp, y_temp = build_timeseries(x_test, 3)
-x_val, x_test_t = np.split(trim_dataset(x_temp, BATCH_SIZE),2)
-y_val, y_test_t = np.split(trim_dataset(y_temp, BATCH_SIZE),2)
+
+x_t, y_t = preprocess(x_train, 3)
+
+x_temp, y_temp = preprocess(x_test, 3)
+x_val, x_test_t = np.split(x_temp, 2)
+y_val, y_test_t = np.split(y_temp, 2)
 
 log.info('Done preprocessing.')
 print()
 logging.info('Training model...')
+
 history = model.fit(x_t, y_t, epochs=10, verbose=2, batch_size=BATCH_SIZE,
                      shuffle=False, validation_data=(trim_dataset(x_val, BATCH_SIZE),
                      trim_dataset(y_val, BATCH_SIZE)))
+
 log.info('Done training.')
 print()
 log.info('Predicting...')
+
 y_pred = model.predict(trim_dataset(x_test_t, BATCH_SIZE), batch_size=BATCH_SIZE)
 y_pred = y_pred.flatten()
 y_test_t = trim_dataset(y_test_t, BATCH_SIZE)
- 
+
 y_pred_org = (y_pred * min_max_scaler.data_range_[3]) + min_max_scaler.data_min_[3]
 y_test_t_org = (y_test_t * min_max_scaler.data_range_[3]) + min_max_scaler.data_min_[3]
 plot_pred(y_pred_org, y_test_t_org)
