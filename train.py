@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import datetime as dt
 import logging
+import os
 
 from matplotlib import pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
@@ -26,7 +27,8 @@ parser = OptionParser()
 parser.add_option('--sd', '--startdate', dest='sd', default='2007-01-01', help='Start date for training.')
 parser.add_option('--ed', '--enddate', dest='ed', default='2012-01-01', help='End date for training.')
 parser.add_option('--tc', '--traincols', dest='train_cols', 
-                    default=['Open','High','Low','Close','Volume'], help='data cols to train on')
+                    default=['Open','High','Low','Close','Volume'], help='Data cols to train on.')
+parser.add_option('--mp', '--modelpath', dest='model_path', default='models/model.h5', help='Path to model.')
 
 (options, args) = parser.parse_args()
 
@@ -34,6 +36,7 @@ sd = dt.datetime.strptime(options.sd, '%Y-%m-%d')
 ed = dt.datetime.strptime(options.ed, '%Y-%m-%d')
 dates = pd.date_range(sd, ed)
 
+model_path = options.model_path
 train_cols = options.train_cols
 data_sym = 'BAC'
 train_size = 0.8
@@ -85,13 +88,6 @@ def preprocess(x, y_col_index):
     x,y = build_timeseries(x, y_col_index)
     return trim_dataset(x, BATCH_SIZE), trim_dataset(y, BATCH_SIZE)
 
-log.info('Creating model...')
-
-model = lstm_model((BATCH_SIZE, TIME_STEPS, len(train_cols)))
-
-log.info('Done')
-print()
-
 log.info('Loading and preprocessing...')
 log.info('Loading data...')
 
@@ -115,15 +111,25 @@ y_val, y_test_t = np.split(y_temp, 2)
 
 log.info('Done preprocessing.')
 print()
-logging.info('Training model...')
 
-history = model.fit(x_t, y_t, epochs=10, verbose=2, batch_size=BATCH_SIZE,
-                     shuffle=False, validation_data=(trim_dataset(x_val, BATCH_SIZE),
-                     trim_dataset(y_val, BATCH_SIZE)))
+if os.path.isfile(model_path):
+    log.info('Loading model...')
+    
+    model = load_model(model_path)
+else:
+    log.info('Creating model...')
 
-#model = load_model('model.h5')
+    model = lstm_model((BATCH_SIZE, TIME_STEPS, len(train_cols)))
 
-log.info('Done training.')
+    log.info('Done.')
+    print()
+    log.info('Training model...')
+    
+    model.fit(x_t, y_t, epochs=10, verbose=2, batch_size=BATCH_SIZE,
+                shuffle=False, validation_data=(trim_dataset(x_val, BATCH_SIZE),
+                trim_dataset(y_val, BATCH_SIZE)))
+
+log.info('Done.')
 print()
 log.info('Predicting...')
 
