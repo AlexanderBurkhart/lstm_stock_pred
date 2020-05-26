@@ -53,15 +53,15 @@ time_steps = int(options.time_steps)
 
 def plot_stock(df):
     plt.figure()
-    for col in df_aapl.columns:
+    for col in df.columns:
         if col == 'Volume':
             continue
-        plt.plot(df_aapl[col])
+        plt.plot(df[col])
 
     plt.title('Stock Price History')
     plt.ylabel('Price')
     plt.xlabel('Days')
-    plt.legend([col for col in df_aapl.columns])
+    plt.legend([col for col in df.columns])
     plt.show()
 
 def plot_pred(y_pred, y_org):
